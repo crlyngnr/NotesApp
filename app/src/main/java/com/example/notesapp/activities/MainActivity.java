@@ -1,5 +1,7 @@
 package com.example.notesapp.activities;
 
+import static android.content.ContentValues.TAG;
+
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -34,11 +36,22 @@ import com.example.notesapp.adapters.NotesAdapter;
 import com.example.notesapp.database.NotesDatabase;
 import com.example.notesapp.entities.Note;
 import com.example.notesapp.listeners.NotesListener;
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdSize;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.initialization.InitializationStatus;
+import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements NotesListener  {
+    private InterstitialAd mInterstitialAd;
     public static final int REQUEST_CODE_ADD_NOTE = 1;
     public static final int REQUEST_CODE_UPDATE_NOTE = 2;
     public static final int REQUEST_CODE_SHOW_NOTES = 3;
@@ -48,12 +61,41 @@ public class MainActivity extends AppCompatActivity implements NotesListener  {
     private RecyclerView notesRecyclerview;
     private List<Note> noteList;
     private NotesAdapter notesAdapter;
+    private AdView mAdView;
     private int noteClickedPosition = -1;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        
+        MobileAds.initialize(this, new OnInitializationCompleteListener() {
+            @Override
+            public void onInitializationComplete(InitializationStatus initializationStatus) {
+            }
+        });
+
+        mAdView = findViewById(R.id.adView);
+        AdRequest adRequest = new AdRequest.Builder().build();
+        mAdView.loadAd(adRequest);
+        InterstitialAd.load(this,"ca-app-pub-3940256099942544/1033173712", adRequest,
+                new InterstitialAdLoadCallback() {
+
+
+                    @Override
+                    public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
+                        mInterstitialAd = interstitialAd;
+                        Log.i(TAG, "onAdLoaded");
+                    }
+
+                    @Override
+                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                        Log.d(TAG, loadAdError.toString());
+                        mInterstitialAd = null;
+                    }
+                });
+
 
         ImageView imageAddNoteMain = findViewById(R.id.imageAddNoteMain);
         imageAddNoteMain.setOnClickListener(new View.OnClickListener() {
@@ -63,9 +105,15 @@ public class MainActivity extends AppCompatActivity implements NotesListener  {
                         new Intent(getApplicationContext(), CreateNoteActivity.class),
                         REQUEST_CODE_ADD_NOTE
                 );
+                if (mInterstitialAd != null) {
+                    mInterstitialAd.show(MainActivity.this);
+                } else {
+                    Log.d("TAG", "The interstitial ad wasn't ready yet.");
+                }
             }
         });
-
+        //ca-app-pub-5932481105418931~1555125485
+        //ca-app-pub-5932481105418931/9506284611
         // RecyclerView ve not listesini başlatma
         notesRecyclerview = findViewById(R.id.notesRecyclerView);
         noteList = new ArrayList<>();
@@ -96,10 +144,15 @@ public class MainActivity extends AppCompatActivity implements NotesListener  {
         findViewById(R.id.imageAddNote).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
+
                startActivityForResult(
                 new Intent(getApplicationContext(),CreateNoteActivity.class),
                 REQUEST_CODE_ADD_NOTE
             );
+
+
+
             }
         });
         findViewById(R.id.imageAddImage).setOnClickListener(new View.OnClickListener() {
